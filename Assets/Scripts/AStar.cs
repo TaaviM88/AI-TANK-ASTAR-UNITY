@@ -11,61 +11,112 @@ public class AStar : MonoBehaviour
     private List<string> map;
 
     private Node[,] nodeMap;
-    // Start is called before the first frame update
-    void Start()
+    public GameObject player;
+    public GameObject enemy;
+    public GenerateLevel generator;
+    public float delay = 0.5f;
+    int mapWidth = 0;
+    int mapHeight = 0;
+
+    public List<Node> FindPath()
     {
-        map = new List<string>();
+        List<GameObject> tiles = new List<GameObject>();
+        tiles = generator.navTiles;
+        player = generator.createdPlayer;
+        enemy = generator.createdEnemy;
+        mapWidth = tiles.Count;
+        mapHeight = tiles.Count;
+        nodeMap = new Node[mapWidth, mapHeight];
+        Node start = null;
+        Node goal = null;
+        nodeMap = generator.GetNodeArray();
+      /* for (int y = 0;y< mapHeight; y++)
+          {
+              for (int x= 0; x < mapWidth; x++)
+              {
+                  NavTile tile = tiles[x].gameObject.GetComponent<NavTile>();
+                  Node node = new Node(tile.x, tile.y);
+                  node.value = tile;
+
+                  nodeMap[tile.x, tile.y] = node;
+              }
+
+          }
+      */
+
+
+      /*  for (int i = 0; i < tiles.Count; i++)
+        {
+            
+            NavTile tile = tiles[i].gameObject.GetComponent<NavTile>();
+            Node node = new Node(tile.x,tile.y);
+            node.value = tile;
+            nodeMap[node.posX, node.posY] = node;
+            Debug.Log($"Node: {node.posX}, {node.posY}");
+        }
+      */
+        start = FindNode(player);
+        goal = FindNode(enemy);
+
+
+        List<Node> nodePath = ExecuteAStar(start,goal);
+        nodePath.Reverse();
+        return nodePath;
+    }
+
+    Node FindNode(GameObject obj)
+    {
+        Collider2D[] collidingObjects = Physics2D.OverlapCircleAll(obj.transform.position, 0.2f);
+       /* for (int y = 0; y < nodeMap.GetLength(1); y++)
+        {
+            for (int x = 0; x < nodeMap.GetLength(0); x++)
+            {
+                Debug.Log($"Counting: {x}, {y} : Node {nodeMap[x, y].value}");
+
+            }
+        }
+       */
+        foreach (Collider2D collidingObject in collidingObjects)
+        {
+            //this is the tile the obj is on.
+            if (collidingObject.gameObject.GetComponent<NavTile>() != null)
+            {
+                //find the node witch contains the tile.
+                NavTile tile = collidingObject.gameObject.GetComponent<NavTile>();
+                for (int y = 0; y < nodeMap.GetLength(1); y++)
+                {
+                    for (int x = 0; x < nodeMap.GetLength(0); x++)
+                    {
+                        Node node = nodeMap[x, y];
+                        
+                        if (node.value == tile)
+                        {
+                            return node;
+                        }
+                    }
+                }
+           
+            }
+        }
+       return null;
+    }
+
+
+    public void StartMapping(List<String> newMap)
+    {
+        /*map = new List<string>();
         map.Add("G-----");
         map.Add("XXX-XX");
         map.Add("S-X-X-");
         map.Add("--X-X-");
         map.Add("--X-X-");
         map.Add("------");
-        nodeMap = new Node[MAP_SIZE,MAP_SIZE];
-        Node start = null;
-        Node goal = null;
+        */
 
-        for (int y = 0; y < MAP_SIZE; y++)
-        {
-            for (int x = 0; x < MAP_SIZE; x++)
-            {
-                Node node = new Node(x,y);
-                char currentChar = map[y][x];
-                if(currentChar == 'X')
-                {
-                    node.value = Node.Value.BLOCKED;
-                }else if(currentChar == 'G')
-                {
-                    goal = node;
-                }
-                else if(currentChar == 'S')
-                {
-                    start = node;
-                }
-
-                nodeMap[x, y] = node;
-            }
-        }
-
-        List<Node> nodePath = ExecuteAStar(start, goal);
-
-        //burn the path in the map
-        foreach (Node node in nodePath)
-        {
-            char[] charArray = map[node.posY].ToCharArray();
-            charArray[node.posX] = '@';
-            map[node.posY] = new string(charArray);
-        }
-
-        string mapString = "";
-        foreach(string mapRow in map)
-        {
-            mapString += mapRow + '\n';
-        }
-
-        Debug.Log(mapString);
+        //StartCoroutine(DelayAStar(newMap));
     }
 
+ 
     private List<Node> ExecuteAStar(Node start, Node goal)
     {
         List<Node> openList = new List<Node>() { start };
@@ -123,47 +174,40 @@ public class AStar : MonoBehaviour
 
         }
         //no more nodes to search. algorithm failed
+        Debug.Log("Can't reach!");
         return new List<Node>();
     }
 
     private List<Node> GetNeighbourNodes(Node node)
     {
         List<Node> neighbours = new List<Node>();
-        //right side
-        if(node.posX -1 >= 0)
+
+        if(node.value.canMoveLeft && node.posX -1 >= 0)
         {
             Node candidate = nodeMap[node.posX - 1, node.posY];
-            if(candidate.value != Node.Value.BLOCKED)
-            {
+            if(candidate.value.navigable)
                 neighbours.Add(candidate);
-            }
         }
-        //left side
-        if (node.posX + 1 <= MAP_SIZE-1)
+
+        if (node.value.canMoveRight && node.posX + 1 <= mapWidth-1)
         {
             Node candidate = nodeMap[node.posX + 1, node.posY];
-            if (candidate.value != Node.Value.BLOCKED)
-            {
+            if (candidate.value.navigable)
                 neighbours.Add(candidate);
-            }
         }
 
-        if (node.posY - 1 >= 0)
+        if (node.value.canMoveUp && node.posY - 1 >= 0)
         {
             Node candidate = nodeMap[node.posX , node.posY - 1];
-            if (candidate.value != Node.Value.BLOCKED)
-            {
+            if (candidate.value.navigable)
                 neighbours.Add(candidate);
-            }
         }
 
-        if (node.posY + 1 <= MAP_SIZE - 1)
+        if (node.value.canMoveDown && node.posY + 1 <= mapHeight - 1)
         {
             Node candidate = nodeMap[node.posX , node.posY + 1];
-            if (candidate.value != Node.Value.BLOCKED)
-            {
+            if (candidate.value.navigable)
                 neighbours.Add(candidate);
-            }
         }
 
 
@@ -187,25 +231,21 @@ public class AStar : MonoBehaviour
     }
 }
 //
-class Node
+public class Node
 {
-    public enum Value
-    {
-        FREE,
-        BLOCKED
-    }
+
     public int posX;
     public int posY;
     //basic cost
     public int g = int.MaxValue;
     //cost of the closest path
     public int f = int.MaxValue;
-    public Node parent;
-    public Value value;
+    public Node parent = null;
+
+    public NavTile value = null;
     public Node(int posX, int posY)
     {
         this.posX = posX;
         this.posY = posY;
-        value = Value.FREE;
     }
 }
