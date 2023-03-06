@@ -54,12 +54,14 @@ public class GenerateLevel : MonoBehaviour
 
     public void Update()
     {
+        /*
         if (Input.GetButtonDown("Fire1"))
         {
             //  astar.StartMapping(map);
             //astar.FindPath(createdPlayer, createdEnemy);
-            sceneController.StartMove();
+            //sceneController.StartMove();
         }
+        */
     }
 
     IEnumerator DelayCreateTile()
@@ -70,22 +72,11 @@ public class GenerateLevel : MonoBehaviour
             for (int x = 0; x < map[0].Length; x++)
             {
                 bool tmp = true;
-                int specialNode = 0;
                 char currentChar = map[y][x];
                 if (currentChar == 'X')
                 {
                     tmp = false;
                 }
-                else if (currentChar == 'G')
-                {
-                   
-                }
-                else if (currentChar == 'S')
-                {
-                    
-                }
-
-
                 //Left/right = -
                 //Up/Down = |
                 //crossroad4 +
@@ -98,7 +89,7 @@ public class GenerateLevel : MonoBehaviour
                 //turnUpRight = U
                 //turnUpLeft = V
 
-                CreateNavTile(new Vector2(x, -1*y), tmp, specialNode,currentChar);
+                CreateNavTile(new Vector2(x, -1*y), tmp,currentChar);
                 yield return new WaitForSeconds(0.01f);
             }
         }
@@ -135,15 +126,16 @@ public class GenerateLevel : MonoBehaviour
     {
         createdPlayer = Instantiate(player, transform.position, Quaternion.identity, this.transform);
         createdPlayer.transform.localPosition = pos;
+        sceneController.PlayerCreated();
     }
 
-    public void CreateNavTile(Vector2 pos, bool navigable, int specialNode, char charType)
+    public void CreateNavTile(Vector2 pos, bool navigable, char charType)
     {
         GameObject newTile = Instantiate(navtileprefab, transform.position, Quaternion.identity, this.transform);
         newTile.transform.localPosition = pos;
         NavTile tile = newTile.GetComponent<NavTile>();
+        tile.identifyXY = new Vector2(pos.x,MathF.Abs(pos.y));
         tile.navigable = navigable;
-        tile.specialNode = specialNode;
         tile.TileType = charType;
         tile.x = (int)pos.x;
         tile.y = -1*(int)pos.y;
@@ -156,8 +148,31 @@ public class GenerateLevel : MonoBehaviour
     }
     public Node[,] GetNodeArray()
     {
+        GenerateNodeMap();
         return nodeMap;
     }
+
+    private void GenerateNodeMap()
+    {
+        nodeMap = new Node[map.Count, map[0].Length];
+        for (int y = 0; y < map.Count; y++)
+        {
+            for (int x = 0; x < map[0].Length; x++)
+            {
+                Node node = new Node(x,y);
+                for (int i = 0; i < navTiles.Count; i++)
+                {
+                    if (navTiles[i].GetComponent<NavTile>().identifyXY == new Vector2(x, y))
+                    {
+                        node.value = navTiles[i].GetComponent<NavTile>();
+                    }
+                }
+                nodeMap[x, y] = node;
+
+            }
+        }
+    }
+
     public void CreatePathNodeSprite(Vector2 pos, bool navigable)
     {
 

@@ -11,21 +11,17 @@ public class AStar : MonoBehaviour
     private List<string> map;
 
     private Node[,] nodeMap;
-    public GameObject player;
-    public GameObject enemy;
+
     public GenerateLevel generator;
     public float delay = 0.5f;
     int mapWidth = 0;
     int mapHeight = 0;
 
-    public List<Node> FindPath()
+    public List<Node> FindPath(GameObject obj1, GameObject obj2)
     {
-        List<GameObject> tiles = new List<GameObject>();
-        tiles = generator.navTiles;
-        player = generator.createdPlayer;
-        enemy = generator.createdEnemy;
-        mapWidth = tiles.Count;
-        mapHeight = tiles.Count;
+
+        mapWidth = generator.map.Count;
+        mapHeight = generator.map[0].Length;
         nodeMap = new Node[mapWidth, mapHeight];
         Node start = null;
         Node goal = null;
@@ -55,8 +51,8 @@ public class AStar : MonoBehaviour
             Debug.Log($"Node: {node.posX}, {node.posY}");
         }
       */
-        start = FindNode(player);
-        goal = FindNode(enemy);
+        start = FindNode(obj1);
+        goal = FindNode(obj2);
 
 
         List<Node> nodePath = ExecuteAStar(start,goal);
